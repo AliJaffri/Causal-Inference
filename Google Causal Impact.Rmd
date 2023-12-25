@@ -1,0 +1,176 @@
+---
+title: "Google Causal Impact"
+author: "Ali Jaffri"
+date: "2023-12-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Define the pre-period and post period dates 
+
+```{r}
+# beginning of the training period 
+start = '2016-01-01'
+treatment = '2018-03-17'
+end = '2018-07-17'
+```
+
+# retrieve the stock price of Facebook aka meta 
+
+```{r}
+install.packages('tseries')
+
+library(tseries)
+
+```
+
+```{r}
+
+Facebook <- get.hist.quote(instrument = "META",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+```
+
+# Control Stocks as they will not be effected by the desicion on Facebook
+```{r}
+
+Walmart <- get.hist.quote(instrument = "WMT",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+
+Disney <- get.hist.quote(instrument = "DIS",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+
+
+BMW <- get.hist.quote(instrument = "BMW.DE",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+
+
+Novatris <- get.hist.quote(instrument = "NVS",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+
+
+Goldman_sach <- get.hist.quote(instrument = "GS",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+
+Mcdonalds  <- get.hist.quote(instrument = "MCD",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+Heinz <- get.hist.quote(instrument = "KHC",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+GE <- get.hist.quote(instrument = "GE",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+Carslberg <- get.hist.quote(instrument = "CARL-B.CO",
+                       start = start,
+                       end = end,
+                       quote = "Close",
+                       compression = "w")
+
+
+
+```
+
+# Plotting the Data
+
+```{r}
+
+series<-cbind(Facebook,Novatris,Walmart,Disney,GE,Mcdonalds,Goldman_sach,deparse.level = 1)
+autoplot(series,facets = NULL)+xlab("Time")+ylab("Closing Price")
+```
+
+# Correlation check and we will use the window function to subset the time series
+
+```{r}
+
+data_set_corr <- window(series,start = start,end = treatment)
+
+# for correlation we need to transform the time series format into a data frame 
+# form so we will use as.dataframe
+
+data_set_corr<-as.data.frame(data_set_corr)
+cor(data_set_corr)
+
+
+# Based on the high correlation of the wlamart stocks among other stocks we will use wlamart as a control group
+
+
+
+```
+
+
+# Final data set selection
+```{r}
+
+final_series<-cbind(Facebook,Walmart,Mcdonalds,Goldman_sach,deparse.level = 1)
+final_series<-na.omit(final_series)
+
+```
+
+
+```{r}
+pre_period <- as.Date(c(start,treatment))
+post_period <-as.Date(c(treatment,end))
+
+
+```
+
+# Running Causal Impact
+
+```{r}
+install.packages("CausalImpact")
+library(CausalImpact)
+```
+
+```{r}
+impact<-CausalImpact(data = final_series,pre.period = pre_period,
+                     post.period = post_period,
+                     model.args = list(niter=2000,nseasons=52))
+```
+
+
+
+# Visulaize Results
+
+
+```{r}
+plot(impact)
+summary(impact)
+summary(impact,"report")
+```
+
