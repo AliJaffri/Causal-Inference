@@ -1,0 +1,187 @@
+---
+title: "Causal Inference"
+author: "Ali Jaffri"
+date: "2023-12-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load the dataset
+
+```{r}
+data_frame <- read.csv("njmin3.csv")
+```
+
+# Summarize the Dataset
+```{r}
+
+summary(data_frame)
+
+```
+
+
+
+# Taking into account missing values and replacing the missing values with the mean of the series
+
+
+```{r}
+data_frame$fte <- ifelse(is.na(data_frame$fte),
+                         ave(data_frame$fte,FUN = function(x) mean(x,na.rm =TRUE)),data_frame$fte)
+```
+
+```{r}
+summary(data_frame)
+```
+
+```{r}
+data_frame$demp <- ifelse(is.na(data_frame$demp),
+                         ave(data_frame$demp,FUN = function(x) mean(x,na.rm =TRUE)),data_frame$demp)
+```
+
+
+
+```{r}
+summary(data_frame)
+```
+
+
+# Create the First Regression Model
+
+```{r}
+
+model1<- lm(fte ~ NJ+ POST_APRIL92+NJ_POST_APRIL92,data = data_frame)
+
+summary(model1)
+
+```
+
+# The Second Regression
+# Create a Base line for comparison so in this model we have excluded roys as an indepedent varaible as it will serve as a baseline
+
+```{r}
+model2<- lm(fte ~ NJ+ POST_APRIL92+NJ_POST_APRIL92+
+              bk+kfc+wendys,data = data_frame)
+
+summary(model2)
+```
+
+# Create the last regression
+
+```{r}
+model3<- lm(fte ~ NJ+ POST_APRIL92+NJ_POST_APRIL92+
+              bk+kfc+wendys+co_owned+centralj+southj,data = data_frame)
+
+summary(model3)
+```
+# Visualizing Results
+
+```{r}
+install.packages("stargazer")
+```
+```{r}
+library(stargazer)
+
+stargazer(model1,model2,model3,
+          type = 'text',
+          title = 'Impact of Minimum Wage on Employment',
+          no.space = TRUE,
+          keep.stat = 'n',
+          digits = 2
+          )
+```
+
+
+
+
+# Second Case study for practice
+
+```{r}
+install.packages('haven')
+library(haven)
+
+```
+# Read the data from stata extension file  we need haven package in R
+
+
+```{r}
+data_set_eitc <- read_dta('eitc.dta')
+```
+
+
+# Create dummy varaibles
+```{r}
+data_set_eitc$post93 <-ifelse(data_set_eitc$year>1993,1,0)
+data_set_eitc$mom <-ifelse(data_set_eitc$children>0,1,0)
+data_set_eitc$mompost93 <- data_set_eitc$post93 *data_set_eitc$mom
+```
+
+
+# First Logistic Regression as our dependent variable is binary
+
+```{r}
+model1_log <-glm(work~post93+mom+mompost93,family = 'binomial',data = data_set_eitc)
+
+summary(model1_log)
+
+  
+```
+# Second Logistic Regression
+
+```{r}
+model2_log <-glm(work~post93+mom+mompost93
+                   +nonwhite+ed+age+unearn
+                   ,family = 'binomial',data = data_set_eitc)
+
+summary(model2_log)
+```
+# Visualizing the Regression Results
+
+```{r}
+install.packages('stargazer')
+library(stargazer)
+
+```
+
+```{r}
+stargazer(model1_log,model2_log,
+          type = 'text',
+          align = TRUE,
+          covariate.labels = c('After 1993','Is Mom',
+          'Is Mom After 1993','Hispanic or White',
+          'Years of Education','Age','Unearned Income'),
+          
+          digits = 2,
+          no.space = TRUE
+          )
+
+
+```
+#  Create Placebo Variables to perform placebo experiment 
+
+```{r}
+
+data_set_eitc$post92 <-ifelse(data_set_eitc$year>1992,1,0)
+data_set_eitc$mompost92 <- data_set_eitc$post92 *data_set_eitc$mom
+
+```
+
+# create a placebo subset
+
+```{r}
+
+data_set_eitc_placebo <-subset(data_set_eitc,data_set_eitc$year<1994)
+
+```
+
+# Create Logistic Regression for Placebo Experiment
+
+```{r}
+model_placebo <-glm(work~post92+mom+mompost92+age+ed,family = 'binomial',data = data_set_eitc_placebo)
+
+summary(model_placebo)
+```
+
+
